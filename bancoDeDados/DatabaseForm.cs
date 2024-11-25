@@ -16,18 +16,6 @@ namespace bancoDeDados
 {
     public partial class DatabaseForm : Form
     {
-
-        class IProductRequest{
-            public string Name { get; set;}
-            public double Price { get; set; }
-
-            public IProductRequest(string name, double price)
-            {
-                Name = name;
-                Price = price;
-            }
-        }
-
         private MySqlConnection _connection;
 
         private string host = "localhost";
@@ -125,26 +113,24 @@ namespace bancoDeDados
 
             try
             {
-                if (nameInput.Text == string.Empty)
+                if (string.IsNullOrEmpty(nameInput.Text))
                 {
-                    MessageBox.Show("Nome incorreto!\nInsira novamente.");
+                    MessageBox.Show("Nome incorreto! Insira novamente.");
                     return;
                 }
 
-                if (priceInput.Text == string.Empty)
+                if (string.IsNullOrEmpty(priceInput.Text) || !double.TryParse(priceInput.Text, out double newPrice))
                 {
-                    MessageBox.Show("Preço incorretos!\nInsira novamente.");
+                    MessageBox.Show("Preço incorreto! Insira novamente.");
                     return;
                 }
-
-                IProductRequest newProduct = new IProductRequest(nameInput.Text, Convert.ToDouble(priceInput.Text));
 
                 string sql = $"insert into {table} (name, price) values (@Name, @Price)";
                 _connection.Open();
 
                 MySqlCommand exec = new MySqlCommand(sql, _connection);
-                exec.Parameters.AddWithValue("@Name", newProduct.Name);
-                exec.Parameters.AddWithValue("@Price", newProduct.Price);
+                exec.Parameters.AddWithValue("@Name", nameInput.Text);
+                exec.Parameters.AddWithValue("@Price", priceInput.Text);
 
                 int rowsAffected = exec.ExecuteNonQuery();
 
@@ -174,38 +160,50 @@ namespace bancoDeDados
 
             try
             {
-                if(nameInput.Text == string.Empty)
+                if (listView1.SelectedItems.Count == 0)
                 {
-                    MessageBox.Show("Nome incorreto!\nInsira novamente.");
+                    MessageBox.Show("Selecione um produto para atualizar.");
+                    return;
+                }
+                
+                if (string.IsNullOrEmpty(nameInput.Text))
+                {
+                    MessageBox.Show("Nome incorreto! Insira novamente.");
+                    return;
+                }
+                
+                if (string.IsNullOrEmpty(priceInput.Text) || !double.TryParse(priceInput.Text, out double newPrice))
+                {
+                    MessageBox.Show("Preço incorreto! Insira novamente.");
                     return;
                 }
 
-                if (priceInput.Text == string.Empty)
-                {
-                    MessageBox.Show("Preço incorretos!\nInsira novamente.");
-                    return;
-                }
+                var selectedItem = listView1.SelectedItems[0];
+                int selectedProductId = int.Parse(selectedItem.SubItems[0].Text);
 
-                IProductRequest newProduct = new IProductRequest(nameInput.Text, Convert.ToDouble(priceInput.Text));
-
-                string sql = $"insert into {table} (name, price) values (@Name, @Price)";
+                string sql = $"update {table} set name = @Name, price = @Price where id = @Id";
                 _connection.Open();
 
                 MySqlCommand exec = new MySqlCommand(sql, _connection);
-                exec.Parameters.AddWithValue("@Name", newProduct.Name);
-                exec.Parameters.AddWithValue("@Price", newProduct.Price);
+                exec.Parameters.AddWithValue("@Name", nameInput.Text);
+                exec.Parameters.AddWithValue("@Price", priceInput.Text);
+                exec.Parameters.AddWithValue("@Id", selectedProductId);
 
                 int rowsAffected = exec.ExecuteNonQuery();
 
                 if (rowsAffected > 0)
                 {
-                    MessageBox.Show("Produto inserido com sucesso!");
+                    MessageBox.Show("Produto atualizado com sucesso!");
                 }
-                else MessageBox.Show("Falha ao inserir produto. Tente novamente.");
+                else
+                {
+                    MessageBox.Show("Falha ao atualizar produto. Tente novamente.");
+                }
+
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Erro ao inserir o produto:\n\n{ex.Message}");
+                MessageBox.Show($"Erro ao atualizar o produto:\n\n{ex.Message}");
             }
             finally
             {
@@ -215,6 +213,7 @@ namespace bancoDeDados
             nameInput.Text = string.Empty;
             priceInput.Text = string.Empty;
             selectAllBtn_Click(sender, e);
+
         }
 
         // -- Delete All
@@ -227,7 +226,7 @@ namespace bancoDeDados
                 MessageBoxIcon.Warning
             );
 
-            if (confirmation == DialogResult.Yes)
+            if (confirmation == DialogResult.No)
             {
                 return;
             }
